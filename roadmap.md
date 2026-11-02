@@ -9,4 +9,5 @@
 - [ ] Private→workspace conversion: URL becomes /w/<name> (or chosen name / verified domain), design carried over (verified design wins, other saved as draft), old URL redirects 30 days
 - [ ] Workspace share preview image not loading in Studio
 - [ ] Verified domain: private account serves on domain directly, not as rout.be/<domain>; workspaces may use domain as name
-- [ ] Identity tab: Bluesky handle claim for workspace URL/domain; Mastodon verification for personal + workspace
+- [x] Identity tab: Mastodon/social verification for personal (incl. alias) + workspace; workspace Bluesky via verified domain
+- [x] Restored maximilien.brussels verified design onto workspace maximilien-6yak (draft)
