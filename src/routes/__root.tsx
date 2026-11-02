@@ -1,3 +1,4 @@
+import { CommandPalette } from "@/components/CommandPalette";
 import { StepUpDialog } from "@/components/auth/StepUpDialog";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -212,6 +213,7 @@ function RootComponent() {
                     <Outlet />
                   </ShellSwitch>
                   <DevModeToggle />
+                  <CommandPalette />
               </ErrorBoundary>
             </AuthProvider>
           </TooltipProvider>

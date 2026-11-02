@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@/lib/router-compat";
 import { toast } from "sonner";
-import { ArrowLeft, KeyRound, Loader2, Mail, MailCheck, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Fingerprint, KeyRound, Loader2, Mail, MailCheck, ShieldCheck } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -438,9 +438,10 @@ export default function AuthNeon({ initialMode = "magic" }: { initialMode?: Mode
           </div>
 
           {unavailable && <Alert variant="destructive" className="mb-4"><AlertDescription>{AUTH_UNAVAILABLE_TEXT[locale]}</AlertDescription></Alert>}
-          <Button type="button" onClick={() => void passkeyLogin()} disabled={loading || unavailable} className="mb-3 h-11 w-full gap-2">
-            <KeyRound className="h-4 w-4" /> {t("auth.passkey")}
+          <Button type="button" onClick={() => void passkeyLogin()} disabled={loading || unavailable} className="cta-glow mb-1 h-12 w-full gap-2 text-base">
+            <Fingerprint className="h-4 w-4" /> {t("auth.passkey")}
           </Button>
+          <p className="mb-3 text-center text-[11px] text-muted-foreground">Face ID, Touch ID of beveiligingssleutel — zonder wachtwoord.</p>
 
           {!adminPortal && (
             <p data-testid="auth-implicit-consent" className="mb-2 text-center text-[11px] leading-relaxed text-muted-foreground">

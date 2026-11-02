@@ -41,3 +41,4 @@
 - Workspace icons: `workspaces.icon` holds a key from the fixed set in `src/lib/workspace-icons.ts` (NULL = derive from category); uploaded logos stay in `avatar_url`. Why: never mix icon keys into image URLs that the Studio uses as avatar.
 - Personal→workspace conversion carries username-derived slug (or chosen), Studio designs (`pickConversionDesign`: verified live, other as concept) and the verified domain; old personal addresses 302 to `/w/<slug>` via `rout_migrated_workspace_for_handle` during the sunset only. Why: nothing is lost and the old name frees up after 30 days.
 - Personal accounts never use a verified domain as username (served on the domain itself); only workspaces may. Why: one identity per address.
+- The global Cmd/Ctrl+K command palette (`src/components/CommandPalette.tsx`) is mounted once in `__root` and opened elsewhere via the `rout:command-palette` window event. Why: one command center on every route, no duplicate listeners.
