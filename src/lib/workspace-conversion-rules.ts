@@ -58,6 +58,8 @@ export const conversionDetailsSchema = z.object({
   description: z.string().trim().max(280).default(""),
   category: z.enum(WORKSPACE_CATEGORIES).nullable().default(null),
   invites: z.array(z.object({ target: z.string().trim().min(3).max(254), role: z.enum(INVITE_ROLES) })).max(MAX_WIZARD_INVITES).default([]),
+  /** Chosen address rout.be/w/<slug>; null = derived from the old username. */
+  slug: z.string().trim().toLowerCase().max(40).nullable().default(null),
 }).extend(workspaceBillingSchema.shape);
 export type ConversionDetails = z.infer<typeof conversionDetailsSchema>;
 
@@ -73,4 +75,32 @@ export const SUNSET_MEMBER_ROLE = "admin" as const;
 /** Whole days left before the sunset (0 on the last day), never negative. */
 export function daysLeft(sunsetAt: string, now: Date): number {
   return Math.max(0, Math.ceil((new Date(sunsetAt).getTime() - now.getTime()) / 86_400_000));
+}
+
+/** Address rout.be/w/<slug> suggested from the old username (dots become dashes). */
+export function suggestedConversionSlug(username: string | null | undefined, workspaceName: string): string {
+  const base = (username ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  if (base.length >= 3) return base;
+  return workspaceName.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+}
+
+export type ConversionDraft = { payload: Record<string, unknown>; published: boolean };
+
+/**
+ * Which personal design the workspace gets. The verified profile's design wins
+ * (when the account is verified and has one); the other design is kept as an
+ * unpublished concept. Live = what rout.be/w/<slug> shows, or null when nothing was published.
+ */
+export function pickConversionDesign(i: { verified: boolean; verifiedDraft: ConversionDraft | null; aliasDraft: ConversionDraft | null }): {
+  live: Record<string, unknown> | null;
+  concept: Record<string, unknown> | null;
+} {
+  const primary = i.verified && i.verifiedDraft ? i.verifiedDraft : i.aliasDraft ?? i.verifiedDraft;
+  if (!primary) return { live: null, concept: null };
+  const other = primary === i.verifiedDraft ? i.aliasDraft : i.verifiedDraft;
+  const live = primary.published ? primary.payload : null;
+  // Concept: the other design if there is one, otherwise the primary itself.
+  const concept = other ? other.payload : primary.payload;
+  return { live, concept };
 }
