@@ -26,7 +26,7 @@ import { profileImageSrc } from "@/lib/image-proxy-rules";
 import { useScope, useWorkspaceContext } from "@/components/WorkspaceSwitcher";
 import { DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
 import { WorkspaceIcon } from "@/components/workspace/WorkspaceIcon";
-import { Shield, ArrowLeftRight, Check as CheckIcon, Plus as PlusIcon, User as UserIcon, Users as UsersIcon } from "lucide-react";
+import { Shield, ArrowLeftRight, Check as CheckIcon, Plus as PlusIcon, User as UserIcon } from "lucide-react";
 import { canUseDeveloperTools } from "@/lib/workspace-rules";
 import { getMyAccount } from "@/lib/account.functions";
 import { contextBadge, contextLinks, GLOBAL_ACCOUNT_LINK } from "@/lib/context-menu";
