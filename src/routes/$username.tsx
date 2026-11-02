@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { createFileRoute, redirect, useParams } from "@tanstack/react-router";
-import { resolveWorkspaceRootAlias } from "@/lib/workspace-public.functions";
+import { resolveMigratedHandle, resolveWorkspaceRootAlias } from "@/lib/workspace-public.functions";
 import { Loader2 } from "lucide-react";
 import { ProfileLookupError, ProfileMissing, ProfileView } from "@/components/profile/ProfileView";
 import { InviteBanner } from "@/components/profile/InviteBanner";
@@ -135,6 +135,9 @@ export const Route = createFileRoute("/$username")({
     if (looksLikeBase36Slug(params.username) || RESERVED_SLUGS.has(handle)) {
       return { handle, locale, profile: null as Row };
     }
+    // Omgezet naar workspace: het oude adres stuurt 30 dagen tijdelijk door.
+    const migrated = await resolveMigratedHandle({ data: { handle, space: "root" } }).catch(() => null);
+    if (migrated) throw redirect({ to: "/w/$slug", params: { slug: migrated }, statusCode: 302 });
     let row: Row = null;
     try {
       row = (await getPublicProfileByHandle({ data: { handle } })) as Row;

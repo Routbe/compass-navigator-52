@@ -87,6 +87,8 @@ export const Route = createFileRoute("/u/$username")({
     } catch {
       /* keep the fallback */
     }
+    const migrated = await resolveMigratedHandle({ data: { handle, space: "alias" } }).catch(() => null);
+    if (migrated) throw redirect({ to: "/w/$slug", params: { slug: migrated }, statusCode: 302 });
     let row: Row = null;
     try {
       row = (await getPublicAliasProfileByHandle({ data: { handle } })) as Row;
