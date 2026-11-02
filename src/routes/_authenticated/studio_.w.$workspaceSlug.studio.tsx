@@ -30,7 +30,8 @@ function WorkspaceStudioPage() {
   const { workspaceSlug } = Route.useParams();
   const activate = useServerFn(activateScopeFromUrl);
   const qc = useQueryClient();
-  const [scope, setScope] = useState<"loading" | "ready" | "denied">("loading");
+  const [scope, setScope] = useState<"loading" | "ready" | "denied" | "error">("loading");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -44,7 +45,7 @@ function WorkspaceStudioPage() {
     return () => {
       alive = false;
     };
-  }, [activate, qc, workspaceSlug]);
+  }, [activate, qc, workspaceSlug, attempt]);
 
   const crumbs = [{ label: "Studio", to: "/studio" }, { label: workspaceSlug }];
   if (scope === "denied") {

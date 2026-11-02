@@ -44,15 +44,16 @@ function WorkspaceSettingsPage() {
   const settingsFn = useServerFn(getWorkspaceSettings);
   const storageFn = useServerFn(getActiveScopeStorage);
   const qc = useQueryClient();
-  const [state, setState] = useState<"loading" | "ready" | "denied">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "denied" | "error">("loading");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let alive = true;
     void activate({ data: { workspaceSlug } })
       .then(() => { if (alive) { qc.clear(); setState("ready"); } })
-      .catch(() => alive && setState("denied"));
+      .catch((e) => alive && setState(isForbidden(e) ? "denied" : "error"));
     return () => { alive = false; };
-  }, [activate, qc, workspaceSlug]);
+  }, [activate, qc, workspaceSlug, attempt]);
 
   const ctx = useQuery({ queryKey: ["workspace-context"], queryFn: () => ctxFn(), enabled: state === "ready" });
   const wsId = ctx.data?.workspaces.find((w) => w.slug === workspaceSlug)?.id ?? null;
