@@ -442,8 +442,6 @@ export default function AuthNeon({ initialMode = "magic" }: { initialMode?: Mode
             <Fingerprint className="h-4 w-4" /> {t("auth.passkey")}
           </Button>
           <p className="mb-3 text-center text-[11px] text-muted-foreground">Face ID, Touch ID of beveiligingssleutel — zonder wachtwoord.</p>
-          <Button type="button" className="hidden">
-          </Button>
 
           {!adminPortal && (
             <p data-testid="auth-implicit-consent" className="mb-2 text-center text-[11px] leading-relaxed text-muted-foreground">
