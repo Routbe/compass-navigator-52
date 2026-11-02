@@ -106,3 +106,35 @@ export async function verifyWorkspaceSocial(userId: string, workspaceId: string,
   `) as Row[];
   return { ok, reason: ok ? ("verified" as const) : ("link_missing" as const), link: saved[0] ? toDTO(saved[0]) : link };
 }
+
+/** Bluesky identity of a workspace + the rout.be handles it can use. */
+export async function readWorkspaceBluesky(userId: string, workspaceId: string) {
+  await assertRole(userId, workspaceId, false);
+  const rows = (await sql`
+    select slug, bluesky_handle, bluesky_did, case when domain_verified_at is not null then domain end as domain
+      from public.workspaces where id = ${workspaceId} limit 1
+  `) as Row[];
+  const r = rows[0];
+  const { workspaceBlueskyHandles } = await import("./relme-links");
+  const slug = (r?.["slug"] as string) ?? "";
+  const domain = (r?.["domain"] as string | null) ?? null;
+  return {
+    handle: (r?.["bluesky_handle"] as string | null) ?? null,
+    did: (r?.["bluesky_did"] as string | null) ?? null,
+    handles: slug ? workspaceBlueskyHandles(slug, domain) : [],
+  };
+}
+
+/** Links the workspace's current Bluesky account (by handle → DID). */
+export async function linkWorkspaceBluesky(userId: string, workspaceId: string, rawHandle: string | null) {
+  await assertRole(userId, workspaceId, true);
+  if (!rawHandle) {
+    await sql`update public.workspaces set bluesky_handle = null, bluesky_did = null, updated_at = now() where id = ${workspaceId}`;
+    return { ok: true as const, handle: null, did: null };
+  }
+  const { resolveBlueskyDid } = await import("./subdomain.server");
+  const r = await resolveBlueskyDid(rawHandle);
+  if ("error" in r) return { ok: false as const, error: r.error };
+  await sql`update public.workspaces set bluesky_handle = ${r.handle}, bluesky_did = ${r.did}, updated_at = now() where id = ${workspaceId}`;
+  return { ok: true as const, handle: r.handle, did: r.did };
+}
