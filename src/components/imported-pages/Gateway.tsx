@@ -7,10 +7,8 @@ import {
   KeyRound,
   CornerDownLeft,
   Fingerprint,
-  LayoutDashboard,
   QrCode,
   ShieldCheck,
-  Sparkles,
   TerminalSquare,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
