@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { createFileRoute, redirect, useParams } from "@tanstack/react-router";
+import { resolveMigratedHandle } from "@/lib/workspace-public.functions";
 import { Loader2 } from "lucide-react";
 import { ProfileLookupError, ProfileMissing, ProfileView } from "@/components/profile/ProfileView";
 import { InviteBanner } from "@/components/profile/InviteBanner";
