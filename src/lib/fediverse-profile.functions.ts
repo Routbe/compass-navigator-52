@@ -16,3 +16,8 @@ export const saveMyFediverseProfile = createServerFn({ method: "POST" }).middlew
       return { ok: false as const, message: status === 403 ? "Bevestig je e-mailadres en kies een profielnaam." : "De koppeling kon tijdelijk niet worden opgeslagen." };
     }
   });
+export const getMyVerificationSetup = createServerFn({ method: "GET" }).middleware([requireAuth]).handler(async ({ context }) => {
+  const { readVerificationSetup } = await import("./fediverse-profile.server");
+  try { return await readVerificationSetup(context.userId); }
+  catch { return { urls: [] as string[], mastodonSuggestion: null as string | null, github: null as string | null }; }
+});

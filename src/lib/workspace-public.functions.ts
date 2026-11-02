@@ -4,6 +4,7 @@ import { readHub, type WorkspaceHub } from "./workspace-hub";
 import { readPublishedStudio, workspaceStudioIsPublic, type WorkspaceStudioPayload } from "./workspace-studio";
 
 export type PublicWorkspace = {
+  relMe: string[];
   name: string;
   slug: string;
   avatarUrl: string | null;
@@ -34,7 +35,10 @@ export const getPublicWorkspace = createServerFn({ method: "GET" })
     const studioRaw = readPublishedStudio(r.public_profile);
     // De publiek/privé-schakelaar van de Studio geldt ook voor de openbare route.
     const studio = studioRaw && workspaceStudioIsPublic(studioRaw) ? studioRaw : null;
+    const { relMeHrefs } = await import("./relme-links");
+    const relRows = (await sql`select * from public.rout_public_workspace_relme(${data.slug})`.catch(() => [])) as { platform: string; username: string }[];
     return {
+      relMe: relMeHrefs(relRows),
       name: r.name, slug: r.slug, avatarUrl: r.avatar_url, description: r.description, domain: r.domain,
       domainVerified: Boolean(r.domain_verified_at),
       profileHandle: r.profile_handle, hub: hub.published ? hub : null, studio,

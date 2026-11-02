@@ -346,3 +346,55 @@ export async function claimRootSubdomainFor(userId: string): Promise<{
 
   return { subdomain, status: "pending_dns" };
 }
+
+/**
+ * Workspace hosts: <slug>.w.rout.be and <domain>.rout.be. Answers the AT
+ * Protocol DID file and rewrites "/" to the public /w/<slug> page. Returns a
+ * Response (DID) or a rewritten Request; null when the host is not a workspace.
+ */
+export async function handleWorkspaceHost(request: Request): Promise<Response | Request | null> {
+  const { workspaceFromHost } = await import("./relme-links");
+  const match = workspaceFromHost(request.headers.get("host"));
+  if (!match) return null;
+  const url = new URL(request.url);
+  const slugArg = "slug" in match ? match.slug : null;
+  const domainArg = "domain" in match ? match.domain : null;
+  if (url.pathname.replace(/\/+$/, "") === "/.well-known/atproto-did") {
+    const headers = { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" } as const;
+    let did: string | null = null;
+    try {
+      const rows = (await sql`select public.rout_workspace_atproto_did(${slugArg}, ${domainArg}) as did`) as Row[];
+      did = (rows[0]?.["did"] as string | null) ?? null;
+    } catch { did = null; }
+    return did?.startsWith("did:") ? new Response(did, { status: 200, headers }) : new Response("DID not configured", { status: 404, headers });
+  }
+  if (url.pathname !== "/") return null;
+  let slug = slugArg;
+  if (!slug && domainArg) {
+    try {
+      const rows = (await sql`select public.rout_workspace_slug_for_domain(${domainArg}) as slug`) as Row[];
+      slug = (rows[0]?.["slug"] as string | null) ?? null;
+    } catch { slug = null; }
+  }
+  if (!slug) return null;
+  const target = new URL(url.toString());
+  target.pathname = `/w/${slug}`;
+  return new Request(target.toString(), request);
+}
+
+/** Resolves a Bluesky handle to its DID via the public AT Protocol resolver. */
+export async function resolveBlueskyDid(rawHandle: string): Promise<{ handle: string; did: string } | { error: string }> {
+  const handle = rawHandle.replace(/\s+/g, "").replace(/^@+/, "").toLowerCase();
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(handle)) return { error: "Dat lijkt geen geldige Bluesky-handle." };
+  try {
+    const res = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`, {
+      headers: { accept: "application/json" }, signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return { error: `Bluesky kon @${handle} niet vinden.` };
+    const body = (await res.json()) as { did?: string };
+    const did = typeof body.did === "string" && /^did:(plc|web):[a-zA-Z0-9._:%-]{1,200}$/.test(body.did) ? body.did : null;
+    return did ? { handle, did } : { error: `Geen DID gevonden voor @${handle}.` };
+  } catch {
+    return { error: "Bluesky is niet bereikbaar. Probeer het opnieuw." };
+  }
+}

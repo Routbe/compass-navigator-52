@@ -117,7 +117,7 @@ export const Route = createFileRoute("/u/$username")({
     const style = isUrlStyle(rawStyle) ? rawStyle : DEFAULT_URL_STYLE;
     const canonicalPath = `/u/${urlStyleHasAt(style) ? "@" : ""}${slug}`;
     return {
-      links: [...canonicalLinks(canonicalPath), ...fediverseHeadLinks(profile["fediverse"] as FediverseIdentity | null)],
+      links: [...canonicalLinks(canonicalPath), ...fediverseHeadLinks(profile["fediverse"] as FediverseIdentity | null, profile["social_links"])],
       scripts:
         profile["status"] === "frozen"
           ? []
