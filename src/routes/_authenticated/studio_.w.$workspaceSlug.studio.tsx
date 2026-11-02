@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ProfileEditor } from "@/components/dashboard/ProfileEditor";
 import { activateScopeFromUrl } from "@/lib/workspaces.functions";
+import { ScopeActivationState, isForbidden } from "@/components/workspace/ScopeActivationState";
 
 export const Route = createFileRoute("/_authenticated/studio_/w/$workspaceSlug/studio")({
   head: () => ({
@@ -30,7 +31,8 @@ function WorkspaceStudioPage() {
   const { workspaceSlug } = Route.useParams();
   const activate = useServerFn(activateScopeFromUrl);
   const qc = useQueryClient();
-  const [scope, setScope] = useState<"loading" | "ready" | "denied">("loading");
+  const [scope, setScope] = useState<"loading" | "ready" | "denied" | "error">("loading");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -40,17 +42,17 @@ function WorkspaceStudioPage() {
         qc.removeQueries({ queryKey: ["workspace-context"] });
         setScope("ready");
       })
-      .catch(() => alive && setScope("denied"));
+      .catch((e) => alive && setScope(isForbidden(e) ? "denied" : "error"));
     return () => {
       alive = false;
     };
-  }, [activate, qc, workspaceSlug]);
+  }, [activate, qc, workspaceSlug, attempt]);
 
   const crumbs = [{ label: "Studio", to: "/studio" }, { label: workspaceSlug }];
-  if (scope === "denied") {
+  if (scope === "denied" || scope === "error") {
     return (
       <AppLayout title="Workspace Studio" crumbs={crumbs}>
-        <p className="text-sm text-muted-foreground">Geen toegang tot deze workspace.</p>
+        <ScopeActivationState kind={scope} onRetry={() => { setScope("loading"); setAttempt((a) => a + 1); }} />
       </AppLayout>
     );
   }

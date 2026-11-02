@@ -27,7 +27,7 @@ const ERRORS: Record<string, string> = {
 };
 
 const STEPS = ["Overzicht", "Organisatie", "Eigenaar & team", "Plan", "Bevestigen"] as const;
-const ROLE_LABEL: Record<InviteRole, string> = { admin: "Admin", developer: "Developer", viewer: "Viewer" };
+const ROLE_LABEL: Record<InviteRole, string> = { admin: "Admin", developer: "Developer", editor: "Editor", viewer: "Viewer" };
 const selectClass = "h-10 rounded-md border border-input bg-background px-3 text-sm";
 
 /** Settings: turn this account into a Workspace owned by a human account, with the same questions as a new workspace. */

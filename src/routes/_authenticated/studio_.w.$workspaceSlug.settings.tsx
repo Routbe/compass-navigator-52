@@ -7,8 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TeamTab } from "@/components/settings/TeamTab";
 import { DocHelpLink } from "@/components/seo/DocHelpLink";
+import { ScopeActivationState, isForbidden } from "@/components/workspace/ScopeActivationState";
+import { WorkspaceIconPicker } from "@/components/workspace/WorkspaceIconPicker";
+import { RolesOverview } from "@/components/workspace/RolesOverview";
+import { isWorkspaceIconKey } from "@/lib/workspace-icons";
 import {
-  activateScopeFromUrl, checkRootWorkspaceSlug, claimCleanWorkspaceSlug, claimRootWorkspaceSlug, deleteWorkspace,
+  activateScopeFromUrl, setWorkspaceIcon, checkRootWorkspaceSlug, claimCleanWorkspaceSlug, claimRootWorkspaceSlug, deleteWorkspace,
   getWorkspaceContext, getWorkspaceSettings, renameWorkspace, setWorkspaceDomain, verifyWorkspaceDomain,
   type WorkspaceSettings as WsSettings,
 } from "@/lib/workspaces.functions";
@@ -44,18 +48,20 @@ function WorkspaceSettingsPage() {
   const settingsFn = useServerFn(getWorkspaceSettings);
   const storageFn = useServerFn(getActiveScopeStorage);
   const qc = useQueryClient();
-  const [state, setState] = useState<"loading" | "ready" | "denied">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "denied" | "error">("loading");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let alive = true;
     void activate({ data: { workspaceSlug } })
       .then(() => { if (alive) { qc.clear(); setState("ready"); } })
-      .catch(() => alive && setState("denied"));
+      .catch((e) => alive && setState(isForbidden(e) ? "denied" : "error"));
     return () => { alive = false; };
-  }, [activate, qc, workspaceSlug]);
+  }, [activate, qc, workspaceSlug, attempt]);
 
   const ctx = useQuery({ queryKey: ["workspace-context"], queryFn: () => ctxFn(), enabled: state === "ready" });
-  const wsId = ctx.data?.workspaces.find((w) => w.slug === workspaceSlug)?.id ?? null;
+  const summary = ctx.data?.workspaces.find((w) => w.slug === workspaceSlug) ?? null;
+  const wsId = summary?.id ?? null;
   const settings = useQuery({
     queryKey: ["workspace-settings", wsId],
     queryFn: () => { if (!wsId) throw new Error("Workspace unavailable"); return settingsFn({ data: { workspaceId: wsId } }); },
@@ -64,7 +70,7 @@ function WorkspaceSettingsPage() {
   const storage = useQuery({ queryKey: ["scope-storage", workspaceSlug], queryFn: () => storageFn(), enabled: state === "ready" });
   const refresh = () => void qc.invalidateQueries();
 
-  if (state === "denied") return <p className="p-8 text-center text-sm text-muted-foreground">Geen toegang tot deze workspace.</p>;
+  if (state === "denied" || state === "error") return <main className="px-4 py-8"><ScopeActivationState kind={state} onRetry={() => { setState("loading"); setAttempt((a) => a + 1); }} /></main>;
   if (ctx.isError || ctx.data?.available === false) return <p role="status" className="p-8 text-center text-sm text-muted-foreground">Workspaces tijdelijk niet beschikbaar.</p>;
   if (state === "loading" || ctx.isLoading || settings.isLoading) return <p className="p-8 text-center text-sm text-muted-foreground">Workspace laden…</p>;
   const ws = settings.data;
@@ -81,6 +87,9 @@ function WorkspaceSettingsPage() {
       </header>
 
       {manage && <GeneralCard ws={ws} onDone={refresh} />}
+      {summary && ["owner", "admin", "editor"].includes(ws.role) && (
+        <IconCard workspaceId={ws.id} category={summary.category} initial={{ icon: isWorkspaceIconKey(summary.icon) ? summary.icon : null, avatarUrl: summary.avatarUrl }} onDone={refresh} />
+      )}
       {manage && <AddressCard ws={ws} onDone={refresh} />}
 
       <section className={card}>
@@ -100,6 +109,8 @@ function WorkspaceSettingsPage() {
         </p>
       )}
 
+      <RolesOverview myRole={ws.role} />
+
       <section className={card}>
         <h2 className="font-medium">Developer Console &amp; API</h2>
         <p className="text-sm text-muted-foreground">API-sleutels, webhooks en OAuth-apps die je in deze workspace maakt, horen bij {ws.name}, niet bij één persoon.</p>
@@ -113,6 +124,26 @@ function WorkspaceSettingsPage() {
       {manage && <DomainCard ws={ws} onDone={refresh} />}
       {ws.role === "owner" && <DangerZone ws={ws} />}
     </main>
+  );
+}
+
+function IconCard({ workspaceId, category, initial, onDone }: { workspaceId: string; category: string | null; initial: Parameters<typeof WorkspaceIconPicker>[0]["value"]; onDone: () => void }) {
+  const save = useServerFn(setWorkspaceIcon);
+  const [value, setValue] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const dirty = value.icon !== initial.icon || value.avatarUrl !== initial.avatarUrl;
+  async function submit() {
+    setBusy(true);
+    try { await save({ data: { workspaceId, ...value } }); toast.success("Icoon bijgewerkt"); onDone(); }
+    catch (e) { toast.error(errText(e)); } finally { setBusy(false); }
+  }
+  return (
+    <section className={card}>
+      <h2 className="font-medium">Icoon of logo</h2>
+      <p className="text-sm text-muted-foreground">Zonder keuze volgt het icoon je categorie.</p>
+      <WorkspaceIconPicker value={value} category={category} onChange={setValue} />
+      <Button onClick={submit} disabled={busy || !dirty}>Opslaan</Button>
+    </section>
   );
 }
 

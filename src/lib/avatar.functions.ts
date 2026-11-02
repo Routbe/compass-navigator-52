@@ -14,6 +14,8 @@ const schema = z
     base64: z.string().min(16).max(7_200_000),
     contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
     ext: z.string().max(5).optional(),
+    /** Workspace logos live apart from the member's avatar history (never pruned with it). */
+    purpose: z.enum(["avatar", "workspace-logo"]).optional(),
   })
   .strict();
 
@@ -31,7 +33,8 @@ export const uploadAvatar = createServerFn({ method: "POST" })
       }
 
       if (s.storageConfigured("client")) {
-        const key = `users/${context.userId}/avatar/${Date.now()}.${s.extFor(real)}`;
+        const folder = data.purpose === "workspace-logo" ? "workspace-logo" : "avatar";
+        const key = `users/${context.userId}/${folder}/${Date.now()}.${s.extFor(real)}`;
         try {
           await s.putObject("client", key, bytes, { contentType: real, publicRead: true });
           return { ok: true, url: s.publicUrl("client", key) };
@@ -41,7 +44,8 @@ export const uploadAvatar = createServerFn({ method: "POST" })
       }
 
       const { sql } = await import("@/lib/neon");
-      const path = `${context.userId}/avatar-${Date.now()}.${s.extFor(real)}`;
+      const prefix = data.purpose === "workspace-logo" ? "workspace-logo" : "avatar";
+      const path = `${context.userId}/${prefix}-${Date.now()}.${s.extFor(real)}`;
       await sql.query(
         `insert into public.avatar_objects (path, user_id, content_type, data)
          values ($1, $2, $3, $4)
@@ -50,12 +54,12 @@ export const uploadAvatar = createServerFn({ method: "POST" })
       );
       await sql.query(
         `delete from public.avatar_objects
-         where user_id = $1
+         where user_id = $1 and path like $2
            and path not in (
-             select path from public.avatar_objects where user_id = $1
+             select path from public.avatar_objects where user_id = $1 and path like $2
              order by created_at desc limit 3
            )`,
-        [context.userId],
+        [context.userId, `${context.userId}/${prefix}-%`],
       );
       return { ok: true, path, url: `/api/public/avatar?path=${encodeURIComponent(path)}` };
     },

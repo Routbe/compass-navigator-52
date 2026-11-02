@@ -1,3 +1,4 @@
+import { isWorkspaceIconKey } from "./workspace-icons";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth/middleware";
@@ -8,7 +9,7 @@ import { workspaceBillingSchema } from "./workspace-pricing";
 const roleSchema = z.enum(WORKSPACE_ROLES);
 const uuid = z.string().uuid();
 
-export type WorkspaceSummary = { id: string; name: string; slug: string; avatarUrl: string | null; plan: string; role: WorkspaceRole };
+export type WorkspaceSummary = { id: string; name: string; slug: string; avatarUrl: string | null; icon: string | null; category: string | null; plan: string; role: WorkspaceRole };
 
 /** Personal context + every workspace the caller belongs to, and which one is active. */
 export const getWorkspaceContext = createServerFn({ method: "GET" })
@@ -25,14 +26,14 @@ export const getWorkspaceContext = createServerFn({ method: "GET" })
     // Invites addressed to this account by @username are accepted too (matched by account id).
     await sql`select public.rout_accept_workspace_invites(${email || null})`;
     const rows = (await sql`
-      select w.id, w.name, w.slug, w.avatar_url, w.plan, m.role::text as role
+      select w.id, w.name, w.slug, w.avatar_url, w.icon, w.category, w.plan, m.role::text as role
       from public.workspace_members m join public.workspaces w on w.id = m.workspace_id
       where m.user_id = ${user.id} order by w.name limit 100
-    `) as { id: string; name: string; slug: string; avatar_url: string | null; plan: string; role: WorkspaceRole }[];
+    `) as { id: string; name: string; slug: string; avatar_url: string | null; icon: string | null; category: string | null; plan: string; role: WorkspaceRole }[];
     const active = await resolveActiveWorkspace(user.id);
     return {
       available: true as const,
-      workspaces: rows.map((r): WorkspaceSummary => ({ id: r.id, name: r.name, slug: r.slug, avatarUrl: r.avatar_url, plan: r.plan, role: r.role })),
+      workspaces: rows.map((r): WorkspaceSummary => ({ id: r.id, name: r.name, slug: r.slug, avatarUrl: r.avatar_url, icon: r.icon, category: r.category, plan: r.plan, role: r.role })),
       activeWorkspaceId: active.workspaceId,
       activeRole: active.role,
     };
@@ -53,6 +54,21 @@ export const setActiveWorkspace = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/** Own uploads only: the app's avatar route or an https storage URL. */
+const logoUrl = z.string().max(500).refine((u) => /^\/api\/public\/avatar\?path=[0-9a-f-]{36}%2F[A-Za-z0-9._-]+$/.test(u) || /^https:\/\/[^\s"'<>]+$/.test(u));
+
+/** Owners/admins/editors change the workspace icon or logo. */
+export const setWorkspaceIcon = createServerFn({ method: "POST" })
+  .middleware([requireAuth])
+  .inputValidator((d) => z.object({ workspaceId: uuid, icon: z.string().refine(isWorkspaceIconKey).nullable(), avatarUrl: logoUrl.nullable() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { sql } = await import("@/lib/neon");
+    const { assertWorkspaceRole } = await import("./workspaces.server");
+    await assertWorkspaceRole(context.userId, data.workspaceId, ["owner", "admin", "editor"]);
+    await sql`update public.workspaces set icon = ${data.icon}, avatar_url = ${data.avatarUrl} where id = ${data.workspaceId}::uuid`;
+    return { ok: true as const };
+  });
+
 const wizardSchema = z.object({
   name: z.string().trim().min(1).max(80),
   description: z.string().trim().max(280).optional(),
@@ -60,7 +76,9 @@ const wizardSchema = z.object({
   category: z.enum(["business", "agency", "nonprofit", "event", "project"]).optional(),
   /** The suffix shown in the wizard preview; used when still free. */
   suffix: z.string().regex(/^[a-z0-9]{4}$/).optional(),
-  invites: z.array(z.object({ target: z.string().trim().min(3).max(254), role: z.enum(["admin", "developer", "viewer"]) })).max(20).optional(),
+  invites: z.array(z.object({ target: z.string().trim().min(3).max(254), role: z.enum(["admin", "developer", "editor", "viewer"]) })).max(20).optional(),
+  icon: z.string().refine(isWorkspaceIconKey).nullable().optional(),
+  avatarUrl: logoUrl.nullable().optional(),
 }).extend(workspaceBillingSchema.shape);
 
 /** Is rout.be/w/<base>-xxxx still free for this base? (suffix keeps it unique; the base must be valid and not reserved). */
@@ -85,7 +103,7 @@ export const createWorkspace = createServerFn({ method: "POST" })
     const { matrixWorkspaceSlug, isValidWorkspaceSlug } = await import("./workspace-rules");
     const { stepError } = await import("./workspace-wizard");
     const invites = data.invites ?? [];
-    const teamErr = stepError("team", { name: data.name, description: "", avatarUrl: null, slugBase: "", category: null, invites, plan_id: data.plan_id, billing_cycle: data.billing_cycle });
+    const teamErr = stepError("team", { name: data.name, description: "", avatarUrl: null, icon: null, slugBase: "", category: null, invites, plan_id: data.plan_id, billing_cycle: data.billing_cycle });
     if (teamErr) throw new Error(teamErr);
     const base = data.slugBase && data.slugBase.length >= 3 ? data.slugBase : data.name;
     let slug = "";
@@ -101,8 +119,8 @@ export const createWorkspace = createServerFn({ method: "POST" })
     const id = crypto.randomUUID();
     // Eén transactie: workspace, eigenaar en uitnodigingen bestaan samen of niet.
     await sql.transaction([
-      sql`insert into public.workspaces (id, name, slug, description, category)
-          values (${id}::uuid, ${data.name}, ${slug}, ${data.description || null}, ${data.category ?? null})`,
+      sql`insert into public.workspaces (id, name, slug, description, category, icon, avatar_url)
+          values (${id}::uuid, ${data.name}, ${slug}, ${data.description || null}, ${data.category ?? null}, ${data.icon ?? null}, ${data.avatarUrl ?? null})`,
       sql`insert into public.workspace_members (workspace_id, user_id, role) values (${id}::uuid, ${context.userId}, 'owner')`,
       ...resolved.map((i) => sql`insert into public.workspace_invites (workspace_id, email, role, invited_by, invited_user_id)
           values (${id}::uuid, ${i.email}, ${i.role}::public.workspace_role, ${context.userId}, ${i.userId}::uuid)

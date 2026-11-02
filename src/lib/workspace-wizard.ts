@@ -15,7 +15,7 @@ export const CATEGORY_LABELS: Record<WorkspaceCategory, string> = {
   project: "Project",
 };
 
-export const INVITE_ROLES = ["admin", "developer", "viewer"] as const;
+export const INVITE_ROLES = ["admin", "developer", "editor", "viewer"] as const;
 export type InviteRole = (typeof INVITE_ROLES)[number];
 export const MAX_WIZARD_INVITES = 20;
 
@@ -23,6 +23,7 @@ export type WizardDraft = {
   name: string;
   description: string;
   avatarUrl: string | null;
+  icon: string | null;
   slugBase: string;
   category: WorkspaceCategory | null;
   /** `target` is an e-mail address or a ROUT @username. */
@@ -31,7 +32,7 @@ export type WizardDraft = {
   billing_cycle: BillingCycle;
 };
 
-export const emptyDraft = (): WizardDraft => ({ name: "", description: "", avatarUrl: null, slugBase: "", category: null, invites: [], plan_id: "tier_starter", billing_cycle: "monthly" });
+export const emptyDraft = (): WizardDraft => ({ name: "", description: "", avatarUrl: null, icon: null, slugBase: "", category: null, invites: [], plan_id: "tier_starter", billing_cycle: "monthly" });
 
 /** Error message for a step, or null when the step is complete. */
 export function stepError(step: WizardStep, d: WizardDraft): string | null {

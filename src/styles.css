@@ -322,6 +322,23 @@ html {
     overflow-x: clip;
   }
 
+  /* Grid/flex children may shrink below their content (long code, URLs),
+     so cards never get pushed past a phone screen. Utilities still override. */
+  .grid > *,
+  main {
+    min-width: 0;
+  }
+
+  pre,
+  code {
+    overflow-wrap: anywhere;
+  }
+
+  pre {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);

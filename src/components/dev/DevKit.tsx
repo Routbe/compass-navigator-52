@@ -402,7 +402,7 @@ export function ApiKeysPanel({
 
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <div className="rounded-xl border border-border bg-muted/40 p-3">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Globe className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
               <p className="text-xs font-semibold text-foreground">Public identifiers</p>
               <Badge variant="outline" className="text-[10px]">
@@ -416,7 +416,7 @@ export function ApiKeysPanel({
             </p>
           </div>
           <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-3">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Lock className="h-3.5 w-3.5 text-destructive" aria-hidden />
               <p className="text-xs font-semibold text-foreground">
                 Secret keys (<code className="font-mono">rout_sk_…</code>)

@@ -38,3 +38,4 @@
 - Profile URLs answer JSON-LD to explicit JSON requests and user-triggered AI fetchers via `machineProfileMiddleware` (`lib/agent/content-negotiation.ts`), reusing the public reads and redaction of the HTML page. Why: one source of public truth; search crawlers keep the HTML.
 
 - Repository imports preserve this project’s generated Cloud clients and project identity; source backend credentials and SQL are never copied or applied automatically. Why: imported services belong to a different deployment.
+- Workspace icons: `workspaces.icon` holds a key from the fixed set in `src/lib/workspace-icons.ts` (NULL = derive from category); uploaded logos stay in `avatar_url`. Why: never mix icon keys into image URLs that the Studio uses as avatar.

@@ -25,7 +25,8 @@ import { mastodonAvatarSrc } from "@/lib/mastodon-avatar";
 import { profileImageSrc } from "@/lib/image-proxy-rules";
 import { useScope, useWorkspaceContext } from "@/components/WorkspaceSwitcher";
 import { DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
-import { Shield, ArrowLeftRight, Check as CheckIcon, Plus as PlusIcon, User as UserIcon, Users as UsersIcon } from "lucide-react";
+import { WorkspaceIcon } from "@/components/workspace/WorkspaceIcon";
+import { Shield, ArrowLeftRight, Check as CheckIcon, Plus as PlusIcon, User as UserIcon } from "lucide-react";
 import { canUseDeveloperTools } from "@/lib/workspace-rules";
 import { getMyAccount } from "@/lib/account.functions";
 import { contextBadge, contextLinks, GLOBAL_ACCOUNT_LINK } from "@/lib/context-menu";
@@ -161,18 +162,18 @@ export function ProfileMenu() {
           </div>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="gap-2" disabled={scopeApi.busy} aria-label="Wissel van account of workspace">
-              {scopeApi.active ? <UsersIcon className="h-4 w-4 shrink-0" aria-hidden /> : <UserIcon className="h-4 w-4 shrink-0" aria-hidden />}
+              {scopeApi.active ? <WorkspaceIcon avatarUrl={scopeApi.active.avatarUrl} icon={scopeApi.active.icon} category={scopeApi.active.category} /> : <UserIcon className="h-4 w-4 shrink-0" aria-hidden />}
               <span className="truncate">{scopeApi.active ? scopeApi.active.name : "Persoonlijk"}</span>
               <ArrowLeftRight className="ml-auto h-3.5 w-3.5 text-muted-foreground" aria-hidden />
             </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="w-60 bg-card">
+            <DropdownMenuSubContent collisionPadding={12} className="max-h-[60vh] w-[min(15rem,calc(100vw-1.5rem))] overflow-y-auto bg-card">
               <DropdownMenuItem onClick={() => scopeApi.switchTo(null)} className="gap-2">
                 <UserIcon className="h-4 w-4" aria-hidden /> Persoonlijk
                 {!scopeApi.active && <CheckIcon className="ml-auto h-4 w-4" aria-hidden />}
               </DropdownMenuItem>
               {scopeApi.workspaces.map((w) => (
                 <DropdownMenuItem key={w.id} onClick={() => scopeApi.switchTo(w.id)} className="gap-2">
-                  <UsersIcon className="h-4 w-4" aria-hidden />
+                  <WorkspaceIcon avatarUrl={w.avatarUrl} icon={w.icon} category={w.category} />
                   <span className="truncate">{w.name}</span>
                   {w.id === scopeApi.active?.id && <CheckIcon className="ml-auto h-4 w-4" aria-hidden />}
                 </DropdownMenuItem>

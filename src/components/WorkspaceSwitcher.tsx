@@ -3,10 +3,11 @@ import { DocHelpLink } from "@/components/seo/DocHelpLink";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Building2, Check, ChevronsUpDown, Plus, User, Users } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, User, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { featureForPath, scopedPath } from "@/lib/scope-routes";
+import { WorkspaceIcon } from "@/components/workspace/WorkspaceIcon";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getWorkspaceContext, setActiveWorkspace } from "@/lib/workspaces.functions";
 
@@ -84,7 +85,7 @@ export function WorkspaceSwitcher({ alwaysShow = false }: { alwaysShow?: boolean
         className="flex max-w-[12rem] items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
         aria-label={t("workspace.switch")}
       >
-        {active ? <Building2 className="h-4 w-4 shrink-0" /> : <User className="h-4 w-4 shrink-0" />}
+        {active ? <WorkspaceIcon avatarUrl={active.avatarUrl} icon={active.icon} category={active.category} /> : <User className="h-4 w-4 shrink-0" />}
         <span className="truncate">{active ? active.name : t("workspace.personal")}</span>
         <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
@@ -99,7 +100,7 @@ export function WorkspaceSwitcher({ alwaysShow = false }: { alwaysShow?: boolean
             <DropdownMenuLabel className="text-xs text-muted-foreground">{t("workspace.list")}</DropdownMenuLabel>
             {data.workspaces.map((w) => (
               <DropdownMenuItem key={w.id} onClick={() => switchTo(w.id)}>
-                <Building2 className="mr-2 h-4 w-4" />
+                <WorkspaceIcon avatarUrl={w.avatarUrl} icon={w.icon} category={w.category} className="mr-2" />
                 <span className="truncate">{w.name}</span>
                 <span className="ml-auto pl-2 text-xs text-muted-foreground">{t(`workspace.role.${w.role}`)}</span>
                 {w.id === active?.id && <Check className="ml-1 h-4 w-4" />}
