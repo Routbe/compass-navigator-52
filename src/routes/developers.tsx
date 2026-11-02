@@ -25,6 +25,7 @@ export const Route = createFileRoute("/developers")({
 });
 
 const NAV = [
+  { id: "mcp", label: "MCP-server" },
   { id: "start", label: "Snel starten" },
   { id: "pkce", label: "Code-flow met PKCE" },
   { id: "claims", label: "Scopes en claims" },
@@ -130,7 +131,7 @@ function DevelopersPage() {
               {[
                 { label: "llms.txt", state: "Live", href: "/llms.txt", ready: true },
                 { label: "OpenAPI-spec", state: "Live", href: "/.well-known/openapi.json", ready: true },
-                { label: "MCP-server", state: "In voorbereiding", href: "/developer/ai-mcp", ready: false },
+                { label: "MCP-server", state: "Live · Operational", href: "#mcp", ready: true },
               ].map((b) => (
                 <li key={b.label}>
                   <a href={b.href} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-xs text-foreground hover:border-ring">
@@ -141,6 +142,26 @@ function DevelopersPage() {
               ))}
             </ul>
           </header>
+
+          <section id="mcp" className="scroll-mt-24 space-y-4">
+            <h2>MCP-server</h2>
+            <p>Verbind Claude Desktop, Cursor of je eigen agent met ROUT via het Model Context Protocol (JSON-RPC 2.0 over HTTP). Profielen lezen kan zonder login; schrijftools vragen een ROUT OAuth-token met agent-scopes, worden gelogd in Chronos en publiceren nooit zelf.</p>
+            <CodeBlock code={`https://rout.be/api/mcp`} language="text" />
+            <CodeBlock language="json" code={`{
+  "mcpServers": {
+    "rout": {
+      "url": "https://rout.be/api/mcp",
+      "headers": { "Authorization": "Bearer <ROUT OAuth access token>" }
+    }
+  }
+}`} />
+            <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+              <li><code>rout_read_profile</code> — publieke JSON-LD van een profiel, alias of workspace</li>
+              <li><code>rout_generate_qr</code> — QR-code of korte link (<code>assets:write</code>)</li>
+              <li><code>rout_create_draft</code> — Studio-concept klaarzetten (<code>profile:draft</code>)</li>
+              <li><code>rout_provision_workspace</code> — staging-workspace van 48 uur met claim-link (<code>assets:write</code>)</li>
+            </ul>
+          </section>
 
           <section id="start" className="scroll-mt-24 space-y-4">
             <h2>Snel starten</h2>
