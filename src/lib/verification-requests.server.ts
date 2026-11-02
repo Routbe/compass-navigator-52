@@ -194,17 +194,9 @@ export async function approveBusinessRequest(requestId: string, adminId: string)
   const userId = request["user_id"] as string;
   const domain = normalizeDomain(request["website_domain"] as string);
 
-  const { isHandleAvailableFor } = await import("./handle-namespace.server");
-  const free = await isHandleAvailableFor(domain, userId);
-
-  if (free) {
-    const current = (await sql`
-      select username from public.profiles where id = ${userId} limit 1
-    `) as Row[];
-    const { preserveFreeAliasHandle } = await import("./alias-profile.server");
-    await preserveFreeAliasHandle(userId, (current[0]?.["username"] as string | null) ?? null);
-    await sql`update public.profiles set username = ${domain} where id = ${userId}`;
-  }
+  // A personal account never takes its domain as rout.be/<domain> username: the
+  // verified domain serves the profile directly. Only workspaces may use a domain as name.
+  void domain;
 
   await sql`
     update public.profiles

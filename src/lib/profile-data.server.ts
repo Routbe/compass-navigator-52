@@ -112,6 +112,12 @@ export async function writeProfileSettings(userId: string, input: ProfileSetting
     if (requested && !(await isHandleAvailableFor(requested, userId))) {
       throw new Error("That handle is already taken.");
     }
+    if (requested && requested.includes(".")) {
+      const domainRows = (await sql`select 1 from public.custom_domains where lower(domain) = lower(${requested}) and status = 'verified' limit 1`.catch(() => [])) as unknown[];
+      if (domainRows.length > 0) {
+        throw new Error("Een geverifieerde domeinnaam kan geen persoonlijke gebruikersnaam zijn: je profiel staat al rechtstreeks op dat domein. Workspaces mogen hun domein wel als naam gebruiken.");
+      }
+    }
   }
 
   // A verified real name is immutable and always wins over submitted names.
