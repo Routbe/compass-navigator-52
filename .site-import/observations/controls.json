@@ -1,0 +1,40 @@
+[
+  {
+    "layout": "desktop",
+    "control": "QR URL input and PNG export",
+    "status": "passed",
+    "url": "http://localhost:8080/studio?mode=qr&url=https%3A%2F%2Fexample.com%2Fimport-check",
+    "artifact": "/tmp/browser/compass-import/desktop-qr.png",
+    "bytes": 87243
+  },
+  {
+    "layout": "desktop",
+    "control": "navigation menu open",
+    "status": "passed",
+    "artifact": "/tmp/browser/compass-import/desktop-menu.png"
+  },
+  {
+    "layout": "desktop",
+    "control": "navigation Escape dismiss",
+    "status": "passed"
+  },
+  {
+    "layout": "phone",
+    "control": "QR URL input and PNG export",
+    "status": "passed",
+    "url": "http://localhost:8080/studio?mode=qr&url=https%3A%2F%2Fexample.com%2Fimport-check",
+    "artifact": "/tmp/browser/compass-import/phone-qr.png",
+    "bytes": 87243
+  },
+  {
+    "layout": "phone",
+    "control": "navigation menu open",
+    "status": "passed",
+    "artifact": "/tmp/browser/compass-import/phone-menu.png"
+  },
+  {
+    "layout": "phone",
+    "control": "navigation Escape dismiss",
+    "status": "passed"
+  }
+]

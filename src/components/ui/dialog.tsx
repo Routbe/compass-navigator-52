@@ -21,7 +21,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-[100] bg-black/70 backdrop-blur-md transition-opacity data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...props}
@@ -32,13 +32,28 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) => {
+  // Return focus to the opener without scrolling the page (Radix focuses without preventScroll).
+  const opener = React.useRef<HTMLElement | null>(null);
+  return (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      onOpenAutoFocus={(e) => {
+        if (!opener.current && typeof document !== "undefined") opener.current = document.activeElement as HTMLElement | null;
+        onOpenAutoFocus?.(e);
+      }}
+      onCloseAutoFocus={(e) => {
+        onCloseAutoFocus?.(e);
+        if (e.defaultPrevented) return;
+        e.preventDefault();
+        const el = opener.current;
+        opener.current = null;
+        if (el?.isConnected) el.focus({ preventScroll: true });
+      }}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg",
+        "fixed left-[50%] top-[50%] z-[101] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-3xl border border-border bg-background p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className,
       )}
       {...props}
@@ -50,7 +65,8 @@ const DialogContent = React.forwardRef<
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
-));
+  );
+});
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

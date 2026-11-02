@@ -1,0 +1,43 @@
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { getPublicWorkspace } from "@/lib/workspace-public.functions";
+import { seedWorkspaceStudio, workspaceProfileRecord } from "@/lib/workspace-studio";
+import { ProfileView } from "@/components/profile/ProfileView";
+
+export const Route = createFileRoute("/w/$slug")({
+  loader: async ({ params }) => {
+    const ws = await getPublicWorkspace({ data: { slug: params.slug } });
+    if (!ws) throw notFound();
+    return ws;
+  },
+  head: ({ loaderData }) => {
+    const title = loaderData ? `${loaderData.name} op ROUT` : "Workspace niet gevonden — ROUT";
+    const description = loaderData
+      ? (loaderData.studio?.tagline || loaderData.hub?.tagline || `Officiële ROUT-pagina van ${loaderData.name}: links, QR-codes en contact.`)
+      : "Deze workspace bestaat niet of is niet openbaar.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "profile" },
+        { name: "twitter:card", content: "summary" },
+        ...(loaderData ? [] : [{ name: "robots", content: "noindex" }]),
+      ],
+    };
+  },
+  component: WorkspacePage,
+});
+
+function WorkspacePage() {
+  const ws = Route.useLoaderData();
+  // Eén renderer: gepubliceerde Studio-pagina, of on-the-fly opgebouwd uit
+  // naam, intro en bestaande links — altijd via dezelfde ProfileView.
+  const payload = ws.studio ?? seedWorkspaceStudio({ slug: ws.slug, name: ws.name, avatarUrl: ws.avatarUrl }, ws.hub);
+  if (!ws.studio && !payload.tagline && ws.description) payload.tagline = ws.description.slice(0, 240);
+  return (
+    <main className="min-h-screen bg-background">
+      <ProfileView profile={workspaceProfileRecord(ws.slug, payload)} free={!ws.domainVerified} />
+    </main>
+  );
+}

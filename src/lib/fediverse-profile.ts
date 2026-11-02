@@ -1,0 +1,52 @@
+import { z } from "zod";
+import { parse, type DefaultTreeAdapterMap } from "parse5";
+
+export const mastodonProfileSchema = z.string().trim().max(200).transform((raw, ctx) => {
+  if (!raw) return "";
+  const handle = /^@?([a-zA-Z0-9_.-]+)@([a-zA-Z0-9.-]+)$/.exec(raw);
+  try {
+    const url = new URL(handle ? `https://${handle[2]}/@${handle[1]}` : raw);
+    if (url.protocol !== "https:" || url.username || url.password || url.port || url.search || url.hash ||
+      !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}$/i.test(url.hostname) ||
+      !/^\/@[a-zA-Z0-9_.-]+\/?$/.test(url.pathname)) throw new Error();
+    url.pathname = url.pathname.replace(/\/$/, "");
+    return url.href;
+  } catch {
+    ctx.addIssue({ code: "custom", message: "Vul een volledige Mastodon-handle of HTTPS-profiel-URL in." });
+    return z.NEVER;
+  }
+});
+
+export type FediverseIdentity = { url: string; verified: boolean };
+export function fediverseHeadLinks(identity: FediverseIdentity | null | undefined) {
+  const parsed = mastodonProfileSchema.safeParse(identity?.url);
+  return parsed.success && parsed.data ? [{ rel: "me", href: parsed.data }] : [];
+}
+
+/** Parse real anchors/links, excluding comments, scripts, and lookalike URLs. */
+export function hasReciprocalLink(html: string, expected: string[], base: string): boolean {
+  const canonical = (raw: string) => {
+    const url = new URL(raw, base);
+    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) return null;
+    return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
+  };
+  const allowed = new Set(expected.map(canonical));
+  const walk = (node: DefaultTreeAdapterMap["node"]): boolean => {
+    if (node.nodeName === "script" || node.nodeName === "template") return false;
+    if (node.nodeName === "a" || node.nodeName === "link") {
+      const attrs = "attrs" in node ? node.attrs ?? [] : [];
+      const href = attrs.find(a => a.name === "href")?.value;
+      const rel = attrs.find(a => a.name === "rel")?.value.toLowerCase().split(/\s+/) ?? [];
+      if (href && rel.includes("me")) {
+        try { const url = canonical(href); if (url && allowed.has(url)) return true; } catch { /* invalid URL */ }
+      }
+    }
+    return "childNodes" in node && node.childNodes.some(walk);
+  };
+  return walk(parse(html));
+}
+
+export function assertVerifiedOwner(user: { id: string; emailConfirmedAt: string | null } | null, ownerId: string) {
+  if (!user) throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
+  if (user.id !== ownerId || !user.emailConfirmedAt) throw Object.assign(new Error("Bevestig eerst je e-mailadres."), { statusCode: 403 });
+}
