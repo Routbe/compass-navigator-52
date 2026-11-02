@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { parse, type DefaultTreeAdapterMap } from "parse5";
+import { relMeHrefs, type RelMeSource } from "./relme-links";
 
 export const mastodonProfileSchema = z.string().trim().max(200).transform((raw, ctx) => {
   if (!raw) return "";
@@ -18,9 +19,14 @@ export const mastodonProfileSchema = z.string().trim().max(200).transform((raw, 
 });
 
 export type FediverseIdentity = { url: string; verified: boolean };
-export function fediverseHeadLinks(identity: FediverseIdentity | null | undefined) {
+export function fediverseHeadLinks(identity: FediverseIdentity | null | undefined, social?: unknown) {
   const parsed = mastodonProfileSchema.safeParse(identity?.url);
-  return parsed.success && parsed.data ? [{ rel: "me", href: parsed.data }] : [];
+  const out = parsed.success && parsed.data ? [{ rel: "me", href: parsed.data }] : [];
+  // Verified GitHub accounts also get rel="me" (IndieWeb / Mastodon chains).
+  const github = Array.isArray(social)
+    ? relMeHrefs(social.filter((s): s is RelMeSource => !!s && typeof s === "object" && (s as RelMeSource).platform === "github" && typeof (s as RelMeSource).username === "string"))
+    : [];
+  return [...out, ...github.map((href) => ({ rel: "me", href }))];
 }
 
 /** Parse real anchors/links, excluding comments, scripts, and lookalike URLs. */

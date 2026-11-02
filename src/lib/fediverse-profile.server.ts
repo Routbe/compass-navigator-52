@@ -82,3 +82,19 @@ export async function readFediverseProfile(userId: string): Promise<FediverseIde
   const age = Date.now() - Date.parse(String(row.verified_at ?? ""));
   return { url: url.data, verified: row.verified === true && row.verify_code === token && age >= 0 && age < 86400_000 };
 }
+/**
+ * Everything the Mastodon/GitHub verification form needs: the member's own
+ * ROUT addresses (to paste on Mastodon/GitHub) and prefills from sign-in
+ * identities or already claimed social accounts.
+ */
+export async function readVerificationSetup(userId: string) {
+  const bound = await binding(userId);
+  const urls = new Set<string>(bound?.urls.filter((u) => !u.includes("/@")) ?? []);
+  const alias = await sql`select handle from public.alias_profiles where user_id=${userId} and enabled=true limit 1`.catch(() => []);
+  if (alias[0]?.handle) urls.add(`https://rout.be/u/${String(alias[0].handle)}`);
+  let sso: Record<string, string> = {};
+  try { const { ssoHandles } = await import("./integrations.server"); sso = await ssoHandles(userId); } catch { /* optional */ }
+  const claimed = await sql`select platform, username from public.social_links where profile_id=${userId} and platform in ('mastodon','github')`.catch(() => []);
+  const pick = (p: string) => sso[p] ?? (claimed.find((r) => r.platform === p)?.username as string | undefined) ?? null;
+  return { urls: [...urls].sort((a, b) => a.length - b.length), mastodonSuggestion: pick("mastodon"), github: pick("github") };
+}
