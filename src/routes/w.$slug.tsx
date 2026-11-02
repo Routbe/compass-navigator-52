@@ -28,6 +28,8 @@ export const Route = createFileRoute("/w/$slug")({
         ] : []),
         ...(loaderData ? [] : [{ name: "robots", content: "noindex" }]),
       ],
+      // rel="me" lets Mastodon show the blue check for this page.
+      links: (loaderData?.relMe ?? []).map((href) => ({ rel: "me", href })),
     };
   },
   component: WorkspacePage,
