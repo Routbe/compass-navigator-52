@@ -83,6 +83,7 @@ import { Route as AboutSovereigntyRouteImport } from './routes/about.sovereignty
 import { Route as AboutUsernamesRouteImport } from './routes/about.usernames'
 import { Route as AccountAccountViewRouteImport } from './routes/account.$accountView'
 import { Route as ApiClaimRootRouteImport } from './routes/api/claim-root'
+import { Route as ApiMcpRouteImport } from './routes/api_.mcp'
 import { Route as ApiPaymentStatusRouteImport } from './routes/api_.payment-status'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthAuthViewRouteImport } from './routes/auth.$authView'
@@ -722,6 +723,11 @@ const ApiClaimRootRoute = ApiClaimRootRouteImport.update({
   id: '/claim-root',
   path: '/claim-root',
   getParentRoute: () => ApiRoute,
+} as any)
+const ApiMcpRoute = ApiMcpRouteImport.update({
+  id: '/api_/mcp',
+  path: '/api/mcp',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPaymentStatusRoute = ApiPaymentStatusRouteImport.update({
   id: '/api_/payment-status',
@@ -2241,6 +2247,7 @@ export interface FileRoutesByFullPath {
   '/about/usernames': typeof AboutUsernamesRoute
   '/account/$accountView': typeof AccountAccountViewRoute
   '/api/claim-root': typeof ApiClaimRootRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/api/payment-status': typeof ApiPaymentStatusRoute
   '/auth/$authView': typeof AuthAuthViewRoute
   '/auth/bluesky': typeof AuthBlueskyRoute
@@ -2570,6 +2577,7 @@ export interface FileRoutesByTo {
   '/about/usernames': typeof AboutUsernamesRoute
   '/account/$accountView': typeof AccountAccountViewRoute
   '/api/claim-root': typeof ApiClaimRootRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/api/payment-status': typeof ApiPaymentStatusRoute
   '/auth/$authView': typeof AuthAuthViewRoute
   '/auth/bluesky': typeof AuthBlueskyRoute
@@ -2912,6 +2920,7 @@ export interface FileRoutesById {
   '/about/usernames': typeof AboutUsernamesRoute
   '/account/$accountView': typeof AccountAccountViewRoute
   '/api/claim-root': typeof ApiClaimRootRoute
+  '/api_/mcp': typeof ApiMcpRoute
   '/api_/payment-status': typeof ApiPaymentStatusRoute
   '/auth/$authView': typeof AuthAuthViewRoute
   '/auth/bluesky': typeof AuthBlueskyRoute
@@ -3257,6 +3266,7 @@ export interface FileRouteTypes {
     | '/about/usernames'
     | '/account/$accountView'
     | '/api/claim-root'
+    | '/api/mcp'
     | '/api/payment-status'
     | '/auth/$authView'
     | '/auth/bluesky'
@@ -3586,6 +3596,7 @@ export interface FileRouteTypes {
     | '/about/usernames'
     | '/account/$accountView'
     | '/api/claim-root'
+    | '/api/mcp'
     | '/api/payment-status'
     | '/auth/$authView'
     | '/auth/bluesky'
@@ -3927,6 +3938,7 @@ export interface FileRouteTypes {
     | '/about/usernames'
     | '/account/$accountView'
     | '/api/claim-root'
+    | '/api_/mcp'
     | '/api_/payment-status'
     | '/auth/$authView'
     | '/auth/bluesky'
@@ -4258,6 +4270,7 @@ export interface RootRouteChildren {
   DotwellKnownOpenapiDotjsonRoute: typeof DotwellKnownOpenapiDotjsonRoute
   DotwellKnownOpenidConfigurationRoute: typeof DotwellKnownOpenidConfigurationRoute
   AccountAccountViewRoute: typeof AccountAccountViewRoute
+  ApiMcpRoute: typeof ApiMcpRoute
   ApiPaymentStatusRoute: typeof ApiPaymentStatusRoute
   AuthConfirmEmailChangeRoute: typeof AuthConfirmEmailChangeRoute
   AuthContinueRoute: typeof AuthContinueRoute
@@ -4897,6 +4910,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/claim-root'
       preLoaderRoute: typeof ApiClaimRootRouteImport
       parentRoute: typeof ApiRoute
+    }
+    '/api_/mcp': {
+      id: '/api_/mcp'
+      path: '/api/mcp'
+      fullPath: '/api/mcp'
+      preLoaderRoute: typeof ApiMcpRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api_/payment-status': {
       id: '/api_/payment-status'
@@ -7390,6 +7410,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownOpenapiDotjsonRoute: DotwellKnownOpenapiDotjsonRoute,
   DotwellKnownOpenidConfigurationRoute: DotwellKnownOpenidConfigurationRoute,
   AccountAccountViewRoute: AccountAccountViewRoute,
+  ApiMcpRoute: ApiMcpRoute,
   ApiPaymentStatusRoute: ApiPaymentStatusRoute,
   AuthConfirmEmailChangeRoute: AuthConfirmEmailChangeRoute,
   AuthContinueRoute: AuthContinueRoute,
