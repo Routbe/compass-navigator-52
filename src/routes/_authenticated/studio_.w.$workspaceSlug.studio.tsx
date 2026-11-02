@@ -63,5 +63,9 @@ function WorkspaceStudioPage() {
       </AppLayout>
     );
   }
-  return <ProfileEditor key={`workspace:${workspaceSlug}`} variant="workspace" workspaceSlug={workspaceSlug} />;
+  return (
+    <AppLayout title="Workspace Studio" crumbs={crumbs}>
+      <ProfileEditor key={`workspace:${workspaceSlug}`} variant="workspace" workspaceSlug={workspaceSlug} />
+    </AppLayout>
+  );
 }
