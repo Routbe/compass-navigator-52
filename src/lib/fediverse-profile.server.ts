@@ -90,11 +90,11 @@ export async function readFediverseProfile(userId: string): Promise<FediverseIde
 export async function readVerificationSetup(userId: string) {
   const bound = await binding(userId);
   const urls = new Set<string>(bound?.urls.filter((u) => !u.includes("/@")) ?? []);
-  const alias = await sql`select handle from public.alias_profiles where user_id=${userId} and enabled=true limit 1`.catch(() => []);
+  const alias = await sql`select handle from public.alias_profiles where user_id=${userId} and enabled=true limit 1`.catch(() => [] as Record<string, unknown>[]);
   if (alias[0]?.handle) urls.add(`https://rout.be/u/${String(alias[0].handle)}`);
   let sso: Record<string, string> = {};
   try { const { ssoHandles } = await import("./integrations.server"); sso = await ssoHandles(userId); } catch { /* optional */ }
-  const claimed = await sql`select platform, username from public.social_links where profile_id=${userId} and platform in ('mastodon','github')`.catch(() => []);
+  const claimed = await sql`select platform, username from public.social_links where profile_id=${userId} and platform in ('mastodon','github')`.catch(() => [] as Record<string, unknown>[]);
   const pick = (p: string) => sso[p] ?? (claimed.find((r) => r.platform === p)?.username as string | undefined) ?? null;
   return { urls: [...urls].sort((a, b) => a.length - b.length), mastodonSuggestion: pick("mastodon"), github: pick("github") };
 }
