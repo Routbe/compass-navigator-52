@@ -116,7 +116,7 @@ export function toolResultFromAgent(status: number, body: unknown) {
   const structured = body && typeof body === "object" && !Array.isArray(body) ? (body as Record<string, unknown>) : { value: body };
   return {
     content: [{ type: "text", text: JSON.stringify(structured) }],
-    structuredContent: { status, ...structured },
+    structuredContent: { ...structured, http_status: status },
     isError: status >= 400,
   };
 }
