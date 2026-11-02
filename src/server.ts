@@ -52,13 +52,16 @@ export default {
       let incoming = request;
       const host = request.headers.get("host") ?? "";
       if (host.includes(".rout.be")) {
-        const { handleAtprotoDidRequest, handleSubdomainRequest, rewriteSubdomainRequest } =
+        const { handleAtprotoDidRequest, handleSubdomainRequest, rewriteSubdomainRequest, handleWorkspaceHost } =
           await import("./lib/subdomain.server");
+        const ws = await handleWorkspaceHost(request);
+        if (ws instanceof Response) return ws;
+        if (ws) incoming = ws;
         const did = await handleAtprotoDidRequest(request);
         if (did) return did;
         const redirect = await handleSubdomainRequest(request);
         if (redirect) return redirect;
-        incoming = (await rewriteSubdomainRequest(request)) ?? request;
+        if (!ws) incoming = (await rewriteSubdomainRequest(request)) ?? request;
       }
 
       const handler = await getServerEntry();
