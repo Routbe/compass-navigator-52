@@ -281,7 +281,13 @@ export async function verifySocialLink(
     return { ok: false, reason: "fetch_failed", link: saved[0] ? toDTO(saved[0]) : link };
   }
 
-  const verified = bioContainsRoutLink(snapshot.bio, handle);
+  const aliasRows = (await sql`
+    select handle from public.alias_profiles where user_id = ${profileId} limit 1
+  `) as Row[];
+  const aliasHandle = (aliasRows[0]?.["handle"] as string | null) ?? null;
+  const verified =
+    bioContainsRoutLink(snapshot.bio, handle) ||
+    (aliasHandle ? bioContainsRoutLink(snapshot.bio, aliasHandle) : false);
   const saved = (await sql`
     update public.social_links
        set is_verified = ${verified},
