@@ -4,6 +4,7 @@ import { readHub, type WorkspaceHub } from "./workspace-hub";
 import { readPublishedStudio, workspaceStudioIsPublic, type WorkspaceStudioPayload } from "./workspace-studio";
 
 export type PublicWorkspace = {
+  relMe: string[];
   name: string;
   slug: string;
   avatarUrl: string | null;
