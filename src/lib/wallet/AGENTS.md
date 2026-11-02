@@ -1,0 +1,2 @@
+## Wallet rules
+- Wallet passes are issued only by `/api/wallet/$kind/$id` via `pass-generator.server.ts` from public profile/event data; content comes from pure `wallet-pass.ts`, which also resolves both certificate naming schemes. A wallet with incomplete certificates is off and returns an unsigned demo payload. Why: private profiles never become passes and missing keys never crash the share menu.
