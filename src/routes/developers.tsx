@@ -25,6 +25,7 @@ export const Route = createFileRoute("/developers")({
 });
 
 const NAV = [
+  { id: "mcp", label: "MCP-server" },
   { id: "start", label: "Snel starten" },
   { id: "pkce", label: "Code-flow met PKCE" },
   { id: "claims", label: "Scopes en claims" },
