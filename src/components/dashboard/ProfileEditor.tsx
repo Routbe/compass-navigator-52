@@ -1976,8 +1976,7 @@ export function ProfileEditor({ variant = "verified", pageMode = "profile", onPa
           {tab === "identity" && (
             isWorkspace ? (
               <div className="space-y-4">
-              // Workspace-verificatie = het bedrijfsdomein (rout.be/<domein>),
-              // geen persoonlijke eID. Subdomein/Bluesky zijn persoonsgebonden.
+              {/* Workspace-verificatie = het bedrijfsdomein; sociale claims eronder. */}
               <WorkspaceDomainPanel
                 workspaceId={wsCanvas?.workspaceId ?? ""}
                 onVerified={() => setLoadAttempt((n) => n + 1)}
