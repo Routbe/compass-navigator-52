@@ -12,6 +12,9 @@ import { getActiveScopeStorage } from "@/lib/assets.functions";
 import { scopedPath } from "@/lib/scope-routes";
 import { PricingTable } from "@/components/workspace/PricingTable";
 import { DocHelpLink } from "@/components/seo/DocHelpLink";
+import { WorkspaceIcon } from "@/components/workspace/WorkspaceIcon";
+import { WorkspaceIconPicker } from "@/components/workspace/WorkspaceIconPicker";
+import { isWorkspaceIconKey } from "@/lib/workspace-icons";
 import {
   CATEGORY_LABELS,
   INVITE_ROLES,
@@ -42,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/studio_/workspaces/new")({
 });
 
 const STEP_TITLES = ["Identiteit", "Adres", "Categorie", "Team", "Plan"];
-const ROLE_LABEL: Record<InviteRole, string> = { admin: "Admin", developer: "Developer", viewer: "Viewer" };
+const ROLE_LABEL: Record<InviteRole, string> = { admin: "Admin", developer: "Developer", editor: "Editor", viewer: "Viewer" };
 const DRAFT_KEY = "rout:new-workspace-draft";
 
 function NewWorkspaceWizard() {
@@ -108,7 +111,8 @@ function NewWorkspaceWizard() {
     try {
       const res = await create({ data: {
         name: d.name.trim(), description: d.description.trim() || undefined, slugBase: d.slugBase,
-        category: d.category ?? undefined, invites: d.invites, suffix: slugQ.data?.ok ? slugQ.data.suffix : undefined,
+        category: d.category ?? undefined, invites: d.invites,
+        icon: isWorkspaceIconKey(d.icon) ? d.icon : null, avatarUrl: d.avatarUrl, suffix: slugQ.data?.ok ? slugQ.data.suffix : undefined,
         plan_id: d.plan_id, billing_cycle: d.billing_cycle,
       } });
       sessionStorage.removeItem(DRAFT_KEY);
@@ -157,10 +161,10 @@ function NewWorkspaceWizard() {
           <>
             <DocHelpLink to="/support/workspace/getting-started/what-is-a-workspace">Nieuw bij Workspaces? Lees hoe bedrijfsaccounts werken.</DocHelpLink>
             <div className="flex items-center gap-3">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl font-semibold text-primary" aria-hidden>
-                {(d.name.trim()[0] ?? "W").toUpperCase()}
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/10 text-primary" aria-hidden>
+                <WorkspaceIcon avatarUrl={d.avatarUrl} icon={d.icon} category={d.category} className={d.avatarUrl ? "h-14 w-14 rounded-xl" : "h-7 w-7"} />
               </div>
-              <p className="text-xs text-muted-foreground">Je logo upload je straks in de Studio van de workspace, waar ook je merkkleuren staan.</p>
+              <p className="text-xs text-muted-foreground">Bij de stap Categorie kies je een passend icoon of upload je je eigen logo.</p>
             </div>
             <label className="block space-y-1.5">
               <span className="text-sm font-medium">Naam van de workspace</span>
@@ -199,6 +203,7 @@ function NewWorkspaceWizard() {
         )}
 
         {current === "category" && (
+          <>
           <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Categorie">
             {WORKSPACE_CATEGORIES.map((c) => (
               <button
@@ -213,6 +218,12 @@ function NewWorkspaceWizard() {
               </button>
             ))}
           </div>
+          <div className="space-y-2 border-t border-border pt-4">
+            <p className="text-sm font-medium">Icoon of logo</p>
+            <p className="text-xs text-muted-foreground">Het icoon volgt je categorie. Kies gerust een ander of upload je eigen logo.</p>
+            <WorkspaceIconPicker value={{ icon: isWorkspaceIconKey(d.icon) ? d.icon : null, avatarUrl: d.avatarUrl }} category={d.category} onChange={(v) => setD((p) => ({ ...p, icon: v.icon, avatarUrl: v.avatarUrl }))} />
+          </div>
+          </>
         )}
 
         {current === "team" && (
