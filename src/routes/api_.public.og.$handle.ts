@@ -23,7 +23,8 @@ export const Route = createFileRoute("/api_/public/og/$handle")({
         const raw = String(params.handle ?? "");
         const wantsSvg = /\.svg$/i.test(raw);
         const handle = sanitizeHandleInput(raw.replace(/\.(svg|png)$/i, ""));
-        const space = new URL(request.url).searchParams.get("space") === "alias" ? "alias" : "root";
+        const spaceParam = new URL(request.url).searchParams.get("space");
+        const space = spaceParam === "alias" ? "alias" : spaceParam === "workspace" ? "workspace" : "root";
         if (!/^[a-z0-9._-]{2,40}$/.test(handle)) {
           return new Response("Invalid handle", { status: 400 });
         }
@@ -81,7 +82,7 @@ export const Route = createFileRoute("/api_/public/og/$handle")({
             avatarShape: (prefs.avatarShape ?? "circle") as OgAvatarShape,
             badge,
           };
-          urlLabel = space === "alias" ? `rout.be/u/${handle}` : `rout.be/${handle}`;
+          urlLabel = space === "alias" ? `rout.be/u/${handle}` : space === "workspace" ? `rout.be/w/${handle}` : `rout.be/${handle}`;
           const avatar = row["avatar_url"] as string | null;
           avatarUrl = avatar || null;
         } catch {
