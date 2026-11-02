@@ -438,8 +438,11 @@ export default function AuthNeon({ initialMode = "magic" }: { initialMode?: Mode
           </div>
 
           {unavailable && <Alert variant="destructive" className="mb-4"><AlertDescription>{AUTH_UNAVAILABLE_TEXT[locale]}</AlertDescription></Alert>}
-          <Button type="button" onClick={() => void passkeyLogin()} disabled={loading || unavailable} className="mb-3 h-11 w-full gap-2">
-            <KeyRound className="h-4 w-4" /> {t("auth.passkey")}
+          <Button type="button" onClick={() => void passkeyLogin()} disabled={loading || unavailable} className="cta-glow mb-1 h-12 w-full gap-2 text-base">
+            <Fingerprint className="h-4 w-4" /> {t("auth.passkey")}
+          </Button>
+          <p className="mb-3 text-center text-[11px] text-muted-foreground">Face ID, Touch ID of beveiligingssleutel — zonder wachtwoord.</p>
+          <Button type="button" className="hidden">
           </Button>
 
           {!adminPortal && (

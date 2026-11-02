@@ -126,6 +126,20 @@ function DevelopersPage() {
             <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">ROUT Developers</p>
             <h1 className="text-4xl font-semibold tracking-tight">Login met ROUT</h1>
             <p className="max-w-2xl text-muted-foreground">Een standaard OpenID Connect-provider met PKCE, geverifieerde e-mail en optionele badges. Geen SDK nodig: elke OIDC-bibliotheek werkt.</p>
+            <ul className="flex flex-wrap gap-2 pt-1" aria-label="Machineleesbare bronnen">
+              {[
+                { label: "llms.txt", state: "Live", href: "/llms.txt", ready: true },
+                { label: "OpenAPI-spec", state: "Live", href: "/.well-known/openapi.json", ready: true },
+                { label: "MCP-server", state: "In voorbereiding", href: "/developer/ai-mcp", ready: false },
+              ].map((b) => (
+                <li key={b.label}>
+                  <a href={b.href} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-xs text-foreground hover:border-ring">
+                    <span className={b.ready ? "h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" : "h-1.5 w-1.5 rounded-full bg-muted-foreground"} aria-hidden />
+                    {b.label} <span className="text-muted-foreground">· {b.state}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
           </header>
 
           <section id="start" className="scroll-mt-24 space-y-4">
