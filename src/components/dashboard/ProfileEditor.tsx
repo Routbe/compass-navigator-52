@@ -148,6 +148,8 @@ import { EmailAliasDomains } from "@/components/dashboard/EmailAliasDomains";
 import { withAuthTimeout, authFailureMessage } from "@/lib/auth-timeout";
 import { oauthAvatarOf } from "@/lib/oauth-avatar";
 import { BlueskyWizard } from "@/components/dashboard/BlueskyWizard";
+import { SocialIdentityVerify } from "@/components/settings/SocialIdentityVerify";
+import { WorkspaceSocialPanel } from "@/components/workspace/WorkspaceSocialPanel";
 import { LiveStatusAccordion } from "@/components/studio/LiveStatusAccordion";
 import { ShareMenu } from "@/components/profile/ShareMenu";
 import { DesignTemplatesPanel } from "@/components/settings/DesignTemplatesPanel";
@@ -484,7 +486,7 @@ export function ProfileEditor({ variant = "verified", pageMode = "profile", onPa
 
   // De "Domains & Bluesky"-tab is verified-only voor personen; een workspace
   // krijgt hem altijd: domeinclaim (rout.be/<domein>) is háár verificatie.
-  const visibleTabs = useMemo(() => TABS.filter((t) => !t.verifiedOnly || verified || isWorkspace), [verified, isWorkspace]);
+  const visibleTabs = useMemo(() => TABS.filter((t) => !t.verifiedOnly || verified || isWorkspace || t.id === "identity"), [verified, isWorkspace]);
   // Losing verification (or loading it late) must never leave the studio on a
   // tab that is no longer rendered — that would show an empty pane.
   useEffect(() => {
@@ -1971,16 +1973,31 @@ export function ProfileEditor({ variant = "verified", pageMode = "profile", onPa
             </Accordion>
           )}
 
-          {tab === "identity" && (verified || isWorkspace) && (
+          {tab === "identity" && (
             isWorkspace ? (
+              <div className="space-y-4">
               // Workspace-verificatie = het bedrijfsdomein (rout.be/<domein>),
               // geen persoonlijke eID. Subdomein/Bluesky zijn persoonsgebonden.
               <WorkspaceDomainPanel
                 workspaceId={wsCanvas?.workspaceId ?? ""}
                 onVerified={() => setLoadAttempt((n) => n + 1)}
               />
+              <WorkspaceSocialPanel workspaceId={wsCanvas?.workspaceId ?? ""} />
+              </div>
+            ) : !verified ? (
+              <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+                <SocialIdentityVerify />
+              </div>
             ) : (
             <Accordion type="single" collapsible className="space-y-3">
+              <AccordionItem value="social_verify" className="rounded-2xl border border-border bg-card px-4 sm:px-5">
+                <AccordionTrigger className="hover:no-underline">
+                  <span className="text-base font-medium">Mastodon &amp; sociale accounts</span>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-4 pb-5">
+                  <SocialIdentityVerify />
+                </AccordionContent>
+              </AccordionItem>
               <AccordionItem
                 value="subdomain_settings"
                 className="rounded-2xl border border-border bg-card px-4 sm:px-5"
