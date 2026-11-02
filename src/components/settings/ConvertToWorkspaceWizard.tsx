@@ -14,7 +14,7 @@ import {
   startWorkspaceConversion,
 } from "@/lib/workspace-conversion.functions";
 import { CATEGORY_LABELS, INVITE_ROLES, WORKSPACE_CATEGORIES, emptyDraft, stepError, type InviteRole, type WizardDraft } from "@/lib/workspace-wizard";
-import { parseInviteTarget } from "@/lib/workspace-rules";
+import { isValidWorkspaceSlug, parseInviteTarget } from "@/lib/workspace-rules";
 import { WORKSPACE_PRICING, formatPlanPrice, planAmountCents } from "@/lib/workspace-pricing";
 
 const ERRORS: Record<string, string> = {
@@ -40,6 +40,7 @@ export function ConvertToWorkspaceWizard() {
   const [step, setStep] = useState<number | null>(null);
   const [d, setD] = useState<WizardDraft>(emptyDraft);
   const [owner, setOwner] = useState("");
+  const [slug, setSlug] = useState<string | null>(null);
   const [inviteTarget, setInviteTarget] = useState("");
   const [inviteRole, setInviteRole] = useState<InviteRole>("admin");
   const [code, setCode] = useState("");
@@ -51,7 +52,11 @@ export function ConvertToWorkspaceWizard() {
   const plan = WORKSPACE_PRICING.find((p) => p.id === d.plan_id) ?? WORKSPACE_PRICING[0]!;
 
   const stepProblem = (i: number): string | null => {
-    if (i === 1) return stepError("identity", d) ?? stepError("category", d);
+    if (i === 1) {
+      const chosen = slug ?? s?.suggestedSlug ?? "";
+      if (chosen && !isValidWorkspaceSlug(chosen)) return "Adres: minstens 3 tekens, alleen kleine letters, cijfers en koppeltekens.";
+      return stepError("identity", d) ?? stepError("category", d);
+    }
     if (i === 2) return parseInviteTarget(owner) ? stepError("team", d) : "Vul het e-mailadres of de @gebruikersnaam van de eigenaar in.";
     if (i === 3) return stepError("plan", d);
     return null;
@@ -84,7 +89,7 @@ export function ConvertToWorkspaceWizard() {
       const r = await startFn({ data: {
         workspaceName: d.name.trim(),
         target: owner.trim(),
-        details: { description: d.description.trim(), category: d.category, invites: d.invites, plan_id: d.plan_id, billing_cycle: d.billing_cycle },
+        details: { description: d.description.trim(), category: d.category, invites: d.invites, plan_id: d.plan_id, billing_cycle: d.billing_cycle, slug: (slug ?? s?.suggestedSlug ?? "") || null },
       } });
       if (!r.ok) return void toast.error(ERRORS[r.reason] ?? "Dat lukte niet.");
       toast.success(`Code verstuurd naar ${r.sentTo}.${r.ownerExists ? "" : " De eigenaar krijgt een uitnodiging om een account te maken."}`);
@@ -171,7 +176,7 @@ export function ConvertToWorkspaceWizard() {
                 ))}
               </div>
               <p className="text-sm text-muted-foreground">
-                Je profiel, statistieken en domeinen gaan mee. {s.hasBlueBadge && "De blauwe verificatiebadge vervalt: die is alleen voor personen. "}
+                Je profiel, ontwerp, statistieken en domeinen gaan mee. {s.designs > 1 ? "Het ontwerp van je geverifieerde profiel wordt de workspacepagina; je andere ontwerp blijft bewaard als concept. " : ""} {s.hasBlueBadge && "De blauwe verificatiebadge vervalt: die is alleen voor personen. "}
                 Facturatie loopt door. Dit account werkt daarna nog 30 dagen gewoon verder als admin van de workspace; pas daarna verdwijnt de login.
               </p>
             </div>
@@ -180,6 +185,18 @@ export function ConvertToWorkspaceWizard() {
           {step === 1 && (
             <div className="space-y-3">
               <Input aria-label="Naam van de organisatie" placeholder="Naam van de organisatie" value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} maxLength={80} />
+              <div className="space-y-1.5">
+                <label htmlFor="convert-slug" className="text-sm font-medium">Nieuw adres</label>
+                <div className="flex min-w-0 items-center rounded-md border border-input bg-background pl-3 text-sm">
+                  <span className="shrink-0 text-muted-foreground">rout.be/w/</span>
+                  <input id="convert-slug" className="h-10 min-w-0 flex-1 bg-transparent pr-3 outline-none" value={slug ?? s.suggestedSlug} maxLength={40}
+                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Je oude adres blijft 30 dagen werken en stuurt door naar dit adres. Is het al bezet, dan voegen we een paar tekens toe.
+                  {s.verifiedDomain && <> Je geverifieerde domein <strong>{s.verifiedDomain}</strong> gaat mee en toont de workspacepagina rechtstreeks.</>}
+                </p>
+              </div>
               <Textarea aria-label="Omschrijving" placeholder="Wat doet jullie organisatie? (optioneel)" rows={3} maxLength={280} value={d.description} onChange={(e) => setD({ ...d, description: e.target.value })} />
               <p className="text-sm font-medium">Wat voor organisatie is het?</p>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -235,6 +252,7 @@ export function ConvertToWorkspaceWizard() {
           {step === 4 && (
             <dl className="grid gap-2 text-sm sm:grid-cols-2">
               <div className="rounded-xl border border-border p-3"><dt className="text-xs text-muted-foreground">Organisatie</dt><dd className="font-medium">{d.name}{d.category ? ` · ${CATEGORY_LABELS[d.category]}` : ""}</dd></div>
+              <div className="rounded-xl border border-border p-3"><dt className="text-xs text-muted-foreground">Nieuw adres</dt><dd className="break-all font-medium">rout.be/w/{slug ?? s.suggestedSlug}</dd></div>
               <div className="rounded-xl border border-border p-3"><dt className="text-xs text-muted-foreground">Eigenaar</dt><dd className="font-medium">{owner}</dd></div>
               <div className="rounded-xl border border-border p-3"><dt className="text-xs text-muted-foreground">Uitnodigingen</dt><dd className="font-medium">{d.invites.length}</dd></div>
               <div className="rounded-xl border border-border p-3"><dt className="text-xs text-muted-foreground">Plan</dt><dd className="font-medium">{plan.label} · {formatPlanPrice(planAmountCents(plan, d.billing_cycle))} {d.billing_cycle === "yearly" ? "per jaar" : "per maand"}</dd></div>

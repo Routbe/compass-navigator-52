@@ -51,3 +51,14 @@ export const resolveWorkspaceRootAlias = createServerFn({ method: "GET" })
     const rows = (await sql`select public.workspace_slug_for_root_alias(${data.handle}) as slug`.catch(() => [])) as { slug: string | null }[];
     return rows[0]?.slug ?? null;
   });
+
+/** Old personal address of a converted account → its new workspace slug during the 30-day sunset; null otherwise. */
+export const resolveMigratedHandle = createServerFn({ method: "GET" })
+  .inputValidator((d) => z.object({ handle: z.string().trim().toLowerCase().max(40), space: z.enum(["root", "alias"]) }).parse(d))
+  .handler(async ({ data }): Promise<string | null> => {
+    if (!/^[a-z0-9._-]{2,40}$/.test(data.handle)) return null;
+    const { hasDatabase, sql } = await import("@/lib/neon");
+    if (!hasDatabase()) return null;
+    const rows = (await sql`select public.rout_migrated_workspace_for_handle(${data.handle}, ${data.space}) as slug`.catch(() => [])) as { slug: string | null }[];
+    return rows[0]?.slug ?? null;
+  });

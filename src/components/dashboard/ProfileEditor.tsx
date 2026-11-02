@@ -1266,12 +1266,12 @@ export function ProfileEditor({ variant = "verified", pageMode = "profile", onPa
                   <section className="space-y-3 rounded-2xl border border-border bg-card p-4 sm:p-5">
                     <h2 className="text-lg font-medium">{t("studio.editor.share")}</h2>
                     <ShareInspector
-                      space={variant === "alias" ? "alias" : "root"}
+                      space={isWorkspace ? "workspace" : variant === "alias" ? "alias" : "root"}
                       prefs={prefs}
                       onPrefChange={setPref}
                       displayName={displayName}
                       bio={tagline}
-                      handle={normalized || handle}
+                      handle={isWorkspace ? (wsCanvas?.slug ?? workspaceSlug ?? "") : normalized || handle}
                     />
                   </section>
                 </AccordionContent>

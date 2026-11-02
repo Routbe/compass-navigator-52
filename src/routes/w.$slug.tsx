@@ -21,7 +21,11 @@ export const Route = createFileRoute("/w/$slug")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "profile" },
-        { name: "twitter:card", content: "summary" },
+        { name: "twitter:card", content: loaderData ? "summary_large_image" : "summary" },
+        ...(loaderData ? [
+          { property: "og:image", content: `https://rout.be/api/public/og/${loaderData.slug}.png?space=workspace` },
+          { name: "twitter:image", content: `https://rout.be/api/public/og/${loaderData.slug}.png?space=workspace` },
+        ] : []),
         ...(loaderData ? [] : [{ name: "robots", content: "noindex" }]),
       ],
     };

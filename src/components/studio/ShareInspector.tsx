@@ -11,7 +11,7 @@ interface Props {
   bio: string | null;
   /** Publieke handle; bepaalt de automatisch gegenereerde preview-kaart. */
   handle?: string;
-  space?: "root" | "alias";
+  space?: "root" | "alias" | "workspace";
 }
 
 /**

@@ -1,7 +1,7 @@
 import { sql, withDbContext } from "@/lib/neon";
 import { hashToken } from "@/lib/auth/password.server";
-import { canExecute, checkTarget, readConversionDetails, statusAfter, SUNSET_DAYS, SUNSET_MEMBER_ROLE, type ConversionDetails, type TransferStatus } from "./workspace-conversion-rules";
-import { slugify } from "./workspace-rules";
+import { canExecute, pickConversionDesign, suggestedConversionSlug, type ConversionDraft, checkTarget, readConversionDetails, statusAfter, SUNSET_DAYS, SUNSET_MEMBER_ROLE, type ConversionDetails, type TransferStatus } from "./workspace-conversion-rules";
+import { isValidWorkspaceSlug } from "./workspace-rules";
 
 /**
  * Personal-to-Workspace conversion. Both sides consent (e-mail code on the
@@ -54,7 +54,11 @@ export async function preflight(userId: string) {
     safeCount(sql`select count(*)::int as n from public.identity_verifications where user_id = ${userId} and is_verified`),
     sql`select app_metadata->>'stripe_customer_id' as stripe from public.users where id = ${userId}` as unknown as Promise<{ stripe: string | null }[]>,
   ]);
+  const carry = await readCarryOver(userId).catch(() => null);
   return {
+    suggestedSlug: suggestedConversionSlug(carry?.username, ""),
+    verifiedDomain: carry?.domain ?? null,
+    designs: carry ? Number(Boolean(carry.drafts.verified)) + Number(Boolean(carry.drafts.alias)) : 0,
     links,
     qrCodes: qrs,
     domains,
@@ -178,11 +182,15 @@ async function maybeExecute(transferId: string): Promise<{ completed: boolean; w
   if (!ready) return { completed: false, workspaceId: null };
 
   const ws = crypto.randomUUID();
-  const base = slugify(t.workspace_name);
-  const slug = `${(base.length < 2 ? "team" : base).slice(0, 32)}-${Math.random().toString(36).slice(2, 6)}`;
   const src = t.source_user_id;
   const days = SUNSET_DAYS;
   const details = readConversionDetails(t.details);
+  const carry = await readCarryOver(src);
+  const slug = await pickSlug(details.slug, carry.username, t.workspace_name);
+  const design = pickConversionDesign({ verified: carry.verified, verifiedDraft: carry.drafts.verified, aliasDraft: carry.drafts.alias });
+  const withSlug = (p: Record<string, unknown> | null) => (p ? JSON.stringify({ ...p, username: slug }) : null);
+  const live = withSlug(design.live);
+  const concept = withSlug(design.concept);
   const { resolveInvites } = await import("./workspaces.server");
   const invites = (await resolveInvites(details.invites, src).catch((): Awaited<ReturnType<typeof resolveInvites>> => [])).filter((i) => i.userId !== t.target_user_id);
 
@@ -209,6 +217,15 @@ async function maybeExecute(transferId: string): Promise<{ completed: boolean; w
     ...invites.map((i) => sql`insert into public.workspace_invites (workspace_id, email, role, invited_by, invited_user_id)
         values (${ws}::uuid, ${i.email}, ${i.role}::public.workspace_role, ${src}, ${i.userId}::uuid)
         on conflict (workspace_id, lower(email)) where status = 'pending' do nothing`),
+    // Design: the verified profile's design goes live, the other stays an unpublished concept.
+    ...(concept ? [sql`insert into public.workspace_profile_drafts (workspace_id, payload, revision, published_revision, updated_by, published_at)
+        values (${ws}::uuid, ${concept}::jsonb, ${live && live !== concept ? 2 : 1}, ${live ? (live !== concept ? 1 : 1) : 0}, ${src}, ${live ? new Date().toISOString() : null}::timestamptz)
+        on conflict (workspace_id) do nothing`] : []),
+    ...(live ? [sql`update public.workspaces set public_profile = coalesce(public_profile, '{}'::jsonb)
+        || jsonb_build_object('published', true, 'studio', ${live}::jsonb) where id = ${ws}::uuid`] : []),
+    // A verified domain moves along: the workspace page is served on it directly.
+    ...(carry.domain ? [sql`update public.workspaces set domain = ${carry.domain}, domain_verified_at = now()
+        where id = ${ws}::uuid and domain is null`] : []),
     sql`update public.profiles set workspace_id = ${ws}::uuid where id = ${src}`,
     sql`update public.tracked_qrs set workspace_id = ${ws}::uuid where user_id = ${src}`,
     sql`update public.oauth_clients set workspace_id = ${ws}::uuid where owner_user_id = ${src}`,
@@ -293,4 +310,41 @@ async function scrubOne(u: { id: string; ba: string | null }) {
           account_status = 'retired', user_metadata = user_metadata - 'neon_auth_id', updated_at = now() where id = ${u.id}`,
     ]);
   }
+}
+
+async function slugTaken(slug: string): Promise<boolean> {
+  const rows = (await sql`select public.rout_workspace_slug_taken(${slug}) as taken`) as { taken: boolean }[];
+  return Boolean(rows[0]?.taken);
+}
+
+/** Chosen address when valid and free; else the old username; else that with a short suffix. */
+async function pickSlug(chosen: string | null, username: string | null, name: string): Promise<string> {
+  const candidates = [chosen, suggestedConversionSlug(username, name)].filter((c): c is string => Boolean(c && isValidWorkspaceSlug(c)));
+  for (const c of candidates) if (!(await slugTaken(c))) return c;
+  const base = (candidates[0] ?? "team").slice(0, 34);
+  for (let i = 0; i < 5; i++) {
+    const c = `${base}-${Math.random().toString(36).slice(2, 6)}`;
+    if (!(await slugTaken(c))) return c;
+  }
+  return `${base}-${crypto.randomUUID().slice(0, 6)}`;
+}
+
+/** Old username, verification, both Studio designs and the first verified domain of the converted account. */
+async function readCarryOver(userId: string) {
+  const [p, drafts, domains] = await Promise.all([
+    sql`select username, coalesce(verified, false) as verified from public.profiles where id = ${userId}` as unknown as Promise<{ username: string | null; verified: boolean }[]>,
+    sql`select space, payload, published_revision from public.profile_drafts where user_id = ${userId}`.catch(() => []) as unknown as Promise<{ space: string; payload: Record<string, unknown>; published_revision: number | string }[]>,
+    sql`select domain from public.custom_domains where user_id = ${userId} and status = 'verified'
+        order by is_default desc, verified_at asc limit 1`.catch(() => []) as unknown as Promise<{ domain: string }[]>,
+  ]);
+  const draft = (space: string): ConversionDraft | null => {
+    const d = drafts.find((r) => r.space === space);
+    return d && d.payload && typeof d.payload === "object" ? { payload: d.payload, published: Number(d.published_revision) > 0 } : null;
+  };
+  return {
+    username: p[0]?.username ?? null,
+    verified: Boolean(p[0]?.verified),
+    drafts: { verified: draft("verified"), alias: draft("alias") },
+    domain: domains[0]?.domain ?? null,
+  };
 }

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { createFileRoute, redirect, useParams } from "@tanstack/react-router";
+import { resolveMigratedHandle } from "@/lib/workspace-public.functions";
 import { Loader2 } from "lucide-react";
 import { ProfileLookupError, ProfileMissing, ProfileView } from "@/components/profile/ProfileView";
 import { InviteBanner } from "@/components/profile/InviteBanner";
@@ -87,6 +88,8 @@ export const Route = createFileRoute("/u/$username")({
     } catch {
       /* keep the fallback */
     }
+    const migrated = await resolveMigratedHandle({ data: { handle, space: "alias" } }).catch(() => null);
+    if (migrated) throw redirect({ to: "/w/$slug", params: { slug: migrated }, statusCode: 302 });
     let row: Row = null;
     try {
       row = (await getPublicAliasProfileByHandle({ data: { handle } })) as Row;
