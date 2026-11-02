@@ -219,7 +219,7 @@ async function maybeExecute(transferId: string): Promise<{ completed: boolean; w
         on conflict (workspace_id, lower(email)) where status = 'pending' do nothing`),
     // Design: the verified profile's design goes live, the other stays an unpublished concept.
     ...(concept ? [sql`insert into public.workspace_profile_drafts (workspace_id, payload, revision, published_revision, updated_by, published_at)
-        values (${ws}::uuid, ${concept}::jsonb, ${live ? 2 : 1}, ${live ? 1 : 0}, ${src}, ${live ? new Date().toISOString() : null}::timestamptz)
+        values (${ws}::uuid, ${concept}::jsonb, ${live && live !== concept ? 2 : 1}, ${live ? (live !== concept ? 1 : 1) : 0}, ${src}, ${live ? new Date().toISOString() : null}::timestamptz)
         on conflict (workspace_id) do nothing`] : []),
     ...(live ? [sql`update public.workspaces set public_profile = coalesce(public_profile, '{}'::jsonb)
         || jsonb_build_object('published', true, 'studio', ${live}::jsonb) where id = ${ws}::uuid`] : []),
