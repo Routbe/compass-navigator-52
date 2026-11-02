@@ -192,11 +192,11 @@ export async function approveBusinessRequest(requestId: string, adminId: string)
   if (!request) return { ok: false as const, reason: "Aanvraag niet gevonden." };
 
   const userId = request["user_id"] as string;
-  const domain = normalizeDomain(request["website_domain"] as string);
+
 
   // A personal account never takes its domain as rout.be/<domain> username: the
   // verified domain serves the profile directly. Only workspaces may use a domain as name.
-  void domain;
+
 
   await sql`
     update public.profiles
@@ -212,7 +212,7 @@ export async function approveBusinessRequest(requestId: string, adminId: string)
        set status = 'approved', reviewed_at = now(), reviewed_by = ${adminId}
      where id = ${requestId}
   `;
-  return { ok: true as const, handle: free ? domain : null };
+  return { ok: true as const, handle: null };
 }
 
 export async function rejectBusinessRequest(
